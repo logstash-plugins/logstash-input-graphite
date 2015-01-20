@@ -17,7 +17,6 @@ require "logstash/timestamp"
 # value as the field's value.
 class LogStash::Inputs::Graphite < LogStash::Inputs::Tcp
   config_name "graphite"
-  milestone 1
 
   public
   def run(output_queue)
