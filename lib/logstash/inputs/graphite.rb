@@ -21,6 +21,8 @@ class LogStash::Inputs::Graphite < LogStash::Inputs::Tcp
   public
   def run(output_queue)
     @queue = output_queue
+    # pass self as output_queue to super Tcp#run - this is a hack so that the << calls in
+    # Tcp will actually call the << method defined below. This is twisted :P
     super(self)
   end
 
