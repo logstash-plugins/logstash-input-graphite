@@ -2,53 +2,75 @@ require "logstash/devutils/rspec/spec_helper"
 require "logstash/inputs/graphite"
 require "logstash/timestamp"
 require "time"
+require_relative "../spec_helper"
 
 describe LogStash::Inputs::Graphite do
+
   before do
     srand(RSpec.configuration.seed)
   end
 
   let(:host) { "127.0.0.1" }
-  let(:port) { rand(5000) + 1025 }
+  let(:port) { rand(1024..65535) }
   let(:queue) { [] }
-
-  let(:client) { TCPSocket.new(host, port) }
+  let(:client) { Stud::try(5.times) { TCPSocket.new(host, port) } }
+  let!(:helper) { TcpHelpers.new }
 
   subject { LogStash::Inputs::Graphite.new("host" => host, "port" => port) }
-  before :each do
-    subject.register
-    Thread.new { subject.run(queue) }
-  end
 
   after :each do
-    subject.teardown
+    subject.close rescue nil
   end
 
-  it "should parse a graphite message" do
-    client.write "a.b.c 10 N\n"
-    sleep 0.01 until queue.size == 1
-    expect(queue.first.to_hash).to include({"a.b.c" => 10})
+  describe "register" do
+    it "should register without errors" do
+      expect { subject.register }.to_not raise_error
+    end
   end
 
-  it "should parse a graphite message with floats" do
-    client.write "a.b.c 10.2 N\n"
-    sleep 0.01 until queue.size == 1
-    expect(queue.first.to_hash).to include({"a.b.c" => 10.2})
+  describe "receive" do
+
+    before(:each) do
+      subject.register
+    end
+
+    it "should parse a graphite message" do
+      result = helper.pipelineless_input(subject, 1) do
+        client.write "a.b.c 10 N\n"
+      end
+      expect(result.size).to eq(1)
+      expect(result.first.to_hash).to include({"a.b.c" => 10})
+    end
+
+    it "should parse a graphite message with floats" do
+      result = helper.pipelineless_input(subject, 1) do
+        client.write "a.b.c 10.2 N\n"
+      end
+      expect(result.size).to eq(1)
+      expect(result.first.to_hash).to include({"a.b.c" => 10.2})
+    end
+
+    it "should support using N as current timestamp" do
+      time = LogStash::Timestamp.new(Time.now)
+      expect(Time).to receive(:now) { time }
+      result = helper.pipelineless_input(subject, 1) do
+        client.write "a.b.c 10 N\n"
+      end
+      expect(result.size).to eq(1)
+      expect(result.first["@timestamp"]).to eq(time)
+    end
+
+    it "should support using N as current timestamp" do
+      time = Time.at(Time.now.to_i) # truncate at the second
+      result = helper.pipelineless_input(subject, 1) do
+        client.write "a.b.c 10 #{time.to_i}\n"
+      end
+      expect(result.size).to eq(1)
+      expect(result.first["@timestamp"]).to eq(LogStash::Timestamp.new(time))
+    end
   end
 
-  it "should support using N as current timestamp" do
-    time = LogStash::Timestamp.new(Time.now)
-    expect(Time).to receive(:now) { time }
-    client.write "a.b.c 10 N\n"
-    sleep 0.01 until queue.size == 1
-    expect(queue.first["@timestamp"]).to eq(time)
+  it_behaves_like "an interruptible input plugin" do
+    let(:config) { { "port" => port } }
   end
-
-  it "should support using N as current timestamp" do
-    time = Time.at(Time.now.to_i) # truncate at the second
-    client.write "a.b.c 10 #{time.to_i}\n"
-    sleep 0.01 until queue.size == 1
-    expect(queue.first["@timestamp"]).to eq(LogStash::Timestamp.new(time))
-  end
-
 end
