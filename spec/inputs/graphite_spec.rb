@@ -51,8 +51,8 @@ describe LogStash::Inputs::Graphite do
     end
 
     it "should support using N as current timestamp" do
-      time = LogStash::Timestamp.new(Time.now)
-      expect(Time).to receive(:now) { time }
+      time = LogStash::Timestamp.now
+      expect(LogStash::Timestamp).to receive(:now) { time }
       result = helper.pipelineless_input(subject, 1) do
         client.write "a.b.c 10 N\n"
       end
@@ -61,12 +61,12 @@ describe LogStash::Inputs::Graphite do
     end
 
     it "should support using N as current timestamp" do
-      time = Time.at(Time.now.to_i) # truncate at the second
+      time = Time.now
       result = helper.pipelineless_input(subject, 1) do
         client.write "a.b.c 10 #{time.to_i}\n"
       end
       expect(result.size).to eq(1)
-      expect(result.first["@timestamp"]).to eq(LogStash::Timestamp.new(time))
+      expect(result.first["@timestamp"]).to eq(LogStash::Timestamp.at(time.to_i))
     end
   end
 
