@@ -30,7 +30,6 @@ class LogStash::Inputs::Graphite < LogStash::Inputs::Tcp
   # so that we can parse it accordingly.
   def <<(event)
     name, value, time = event["message"].split(" ")
-    event[name] = value.to_f
 
     if time != "N"
       event.timestamp = LogStash::Timestamp.at(time.to_i)
