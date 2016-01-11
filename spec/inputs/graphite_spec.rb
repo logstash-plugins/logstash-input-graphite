@@ -51,13 +51,12 @@ describe LogStash::Inputs::Graphite do
     end
 
     it "should support using N as current timestamp" do
-      time = LogStash::Timestamp.now
-      expect(LogStash::Timestamp).to receive(:now) { time }
       result = helper.pipelineless_input(subject, 1) do
         client.write "a.b.c 10 N\n"
       end
       expect(result.size).to eq(1)
-      expect(result.first["@timestamp"]).to eq(time)
+      # 2 seconds squew should provide ample margin for any tests run slowdown
+      expect(result.first["@timestamp"].to_i).to be_within(2).of(LogStash::Timestamp.now.to_i)
     end
 
     it "should support using N as current timestamp" do
