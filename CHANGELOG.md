@@ -1,3 +1,6 @@
+## 2.0.5
+ - remove implementation specific test in specs
+
 ## 2.0.3
  - fixed specs for time handling
 
