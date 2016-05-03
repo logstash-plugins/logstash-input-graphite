@@ -56,7 +56,7 @@ describe LogStash::Inputs::Graphite do
       end
       expect(result.size).to eq(1)
       # 2 seconds squew should provide ample margin for any tests run slowdown
-      expect(result.first["@timestamp"].to_i).to be_within(2).of(LogStash::Timestamp.now.to_i)
+      expect(result.first.get("@timestamp").to_i).to be_within(2).of(LogStash::Timestamp.now.to_i)
     end
 
     it "should support using N as current timestamp" do
@@ -65,7 +65,7 @@ describe LogStash::Inputs::Graphite do
         client.write "a.b.c 10 #{time.to_i}\n"
       end
       expect(result.size).to eq(1)
-      expect(result.first["@timestamp"]).to eq(LogStash::Timestamp.at(time.to_i))
+      expect(result.first.get("@timestamp")).to eq(LogStash::Timestamp.at(time.to_i))
     end
   end
 

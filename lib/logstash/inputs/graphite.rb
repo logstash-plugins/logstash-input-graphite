@@ -29,8 +29,8 @@ class LogStash::Inputs::Graphite < LogStash::Inputs::Tcp
   # This is a silly hack to make the superclass (Tcp) give us a finished event
   # so that we can parse it accordingly.
   def <<(event)
-    name, value, time = event["message"].split(" ")
-    event[name] = value.to_f
+    name, value, time = event.get("message").split(" ")
+    event.set(name, value.to_f)
 
     if time != "N"
       event.timestamp = LogStash::Timestamp.at(time.to_i)
